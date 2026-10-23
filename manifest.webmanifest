@@ -1,0 +1,17 @@
+{
+  "name": "Fundamental Analysis Checklist",
+  "short_name": "FA Checklist",
+  "description": "Score a company against a 29-metric fundamental analysis checklist.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#eff3f4",
+  "theme_color": "#1a566c",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

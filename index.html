@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Fundamental analysis checklist</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#1a566c">
+<link rel="icon" type="image/svg+xml" href="/brand/icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <style>
@@ -112,6 +117,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { scroll-padding-top: env(safe-area-inset-top, 0px); }
 body {
   margin: 0;
@@ -140,7 +146,11 @@ h1, h2, h3, h4 { font-weight: 400; letter-spacing: -0.02em; margin: 0; color: va
 }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand svg { display: block; flex-shrink: 0; }
-.brand-name { font-size: 14px; font-weight: 500; color: var(--sol-text-default); }
+.brand { gap: 10px; }
+.brand-name { font-size: 16px; font-weight: 400; color: var(--sol-text-default); letter-spacing: -0.01em; }
+.brand-name b { font-weight: 700; }
+.brand-name, .btn { white-space: nowrap; }
+.brand svg { flex-shrink: 0; }
 .nav-spacer { flex: 1; }
 .nav-meta { font-size: 12px; color: var(--sol-text-tertiary); }
 
@@ -235,6 +245,7 @@ select.input { padding-right: 4px; cursor: pointer; }
 
 /* Content grid */
 .content-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+.content-grid > *, .card, .side { min-width: 0; }
 .side { display: flex; flex-direction: column; gap: 24px; }
 .card-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .card-title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
@@ -270,7 +281,25 @@ select.input { padding-right: 4px; cursor: pointer; }
 .chip.selected .count { color: inherit; }
 
 /* Table */
-.table-scroll { overflow-x: auto; border: 1px solid var(--sol-stroke-subdued); border-radius: var(--sol-radius-lg); }
+.table-scroll {
+  overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+  border: 1px solid var(--sol-stroke-subdued); border-radius: var(--sol-radius-lg);
+  max-width: 100%; position: relative;
+}
+.table-scroll:focus-visible { outline: 2px solid var(--sol-stroke-interaction); outline-offset: 2px; }
+thead th:first-child, tbody tr.metric td:first-child {
+  position: sticky; left: 0; z-index: 2;
+  min-width: 180px; max-width: 220px;
+  border-right: 1px solid var(--sol-stroke-subdued);
+}
+thead th:first-child { background: var(--sol-surface-whisper); z-index: 3; }
+tbody tr.metric td:first-child { background: var(--sol-surface-default); }
+tbody tr.metric:hover td:first-child { background: var(--sol-surface-whisper); }
+.table-scroll.scrolled thead th:first-child,
+.table-scroll.scrolled tbody tr.metric td:first-child { box-shadow: 6px 0 8px -6px rgba(14, 29, 35, 0.25); }
+tr.group .group-label { position: sticky; left: 12px; display: inline-block; }
+.scroll-hint { display: none; align-items: center; gap: 6px; font-size: 12px; color: var(--sol-text-tertiary); margin: 0 0 8px; }
+.scroll-hint .material-symbols-outlined { font-size: 16px; }
 table { width: 100%; border-collapse: collapse; min-width: 1080px; }
 thead th {
   background: var(--sol-surface-whisper); padding: 10px 12px;
@@ -314,12 +343,13 @@ tr.group .group-meta { font-weight: 400; color: var(--sol-text-tertiary); margin
 .disclaimer .material-symbols-outlined { color: var(--sol-icon-interaction); }
 
 @media (max-width: 1100px) {
-  .content-grid { grid-template-columns: 1fr; }
+  .content-grid { grid-template-columns: minmax(0, 1fr); }
   .side { display: grid; grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 860px) {
   .kpi-row { grid-template-columns: 1fr 1fr; }
   .notes-grid { grid-template-columns: 1fr; }
+  .scroll-hint { display: flex; }
 }
 @media (max-width: 600px) {
   .page { padding: 16px; }
@@ -327,7 +357,13 @@ tr.group .group-meta { font-weight: 400; color: var(--sol-text-tertiary); margin
   .side { grid-template-columns: 1fr; }
   .topnav { padding: 0 16px; }
   .nav-meta { display: none; }
+  #btnInstall { padding: 0 12px; }
   .company-field { min-width: 0; flex: 1 1 100%; }
+  .card { padding: 16px; }
+  thead th, tbody td { padding: 10px 8px; }
+  thead th:first-child, tbody tr.metric td:first-child { min-width: 150px; max-width: 170px; }
+  .m-calc { display: none; }
+  .m-tell { max-width: 24ch; font-size: 13px; }
   .dl { grid-template-columns: 110px 1fr; }
 }
 </style>
@@ -335,10 +371,12 @@ tr.group .group-meta { font-weight: 400; color: var(--sol-text-tertiary); margin
 <body>
 <nav class="topnav">
   <div class="brand">
-    <span class="brand-name">Fundamental analysis</span>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="28" height="28" aria-hidden="true" focusable="false"> <defs><linearGradient id="faMarkBg" x1="0" y1="0" x2="1" y2="1"> <stop offset="0" stop-color="#22708c"/><stop offset="1" stop-color="#0f3b4c"/></linearGradient></defs> <rect width="512" height="512" rx="112" fill="url(#faMarkBg)"/> <g fill="#ffffff"> <rect x="104" y="294" width="60" height="110" rx="14"/> <rect x="192" y="234" width="60" height="170" rx="14" fill-opacity="0.92"/> <rect x="280" y="164" width="60" height="240" rx="14" fill-opacity="0.85"/> </g> <circle cx="372" cy="150" r="80" fill="url(#faMarkBg)"/> <circle cx="372" cy="150" r="66" fill="#3fd69a"/> <path d="M340 152 l22 22 l44 -48" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/> </svg>
+    <span class="brand-name"><b>FA</b> Checklist</span>
   </div>
   <div class="nav-spacer"></div>
   <span class="nav-meta">Educational screening tool</span>
+  <button class="btn btn-secondary" id="btnInstall" type="button" hidden><span class="material-symbols-outlined">install_mobile</span>Install app</button>
 </nav>
 
 <main class="page">
@@ -410,7 +448,8 @@ tr.group .group-meta { font-weight: 400; color: var(--sol-text-tertiary); margin
         </div>
       </div>
       <div class="chips" id="chips" role="tablist"></div>
-      <div class="table-scroll">
+      <p class="scroll-hint" id="scrollHint"><span class="material-symbols-outlined">swipe</span>Swipe the table sideways to see all columns</p>
+      <div class="table-scroll" id="tableScroll" tabindex="0" role="region" aria-label="Checklist table, scrolls horizontally">
         <table>
           <thead>
             <tr>
@@ -573,7 +612,7 @@ tr.group .group-meta { font-weight: 400; color: var(--sol-text-tertiary); margin
   var tbody = document.getElementById("tbody");
   var html = "";
   CATS.forEach(function (cat) {
-    html += '<tr class="group" data-cat="' + esc(cat) + '"><td colspan="10">' + esc(cat) + '<span class="group-meta" data-gmeta="' + esc(cat) + '"></span></td></tr>';
+    html += '<tr class="group" data-cat="' + esc(cat) + '"><td colspan="10"><span class="group-label">' + esc(cat) + '<span class="group-meta" data-gmeta="' + esc(cat) + '"></span></span></td></tr>';
     DATA.forEach(function (d, i) {
       if (d[0] !== cat) return;
       var unitLabel = d[5].trim();
@@ -988,6 +1027,27 @@ tr.group .group-meta { font-weight: 400; color: var(--sol-text-tertiary); margin
     try { await loadSymbol(matchSelect.value); } catch (e) { setStatus("error", e.message); }
     finally { btnLoad.disabled = false; }
   });
+
+  var tableScroll = document.getElementById("tableScroll");
+  tableScroll.addEventListener("scroll", function () {
+    tableScroll.classList.toggle("scrolled", tableScroll.scrollLeft > 4);
+    if (tableScroll.scrollLeft > 40) document.getElementById("scrollHint").style.visibility = "hidden";
+  }, { passive: true });
+
+  // Installable app (PWA): service worker + install button
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    navigator.serviceWorker.register("/sw.js").catch(function () {});
+  }
+  var deferredPrompt = null, btnInstall = document.getElementById("btnInstall");
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault(); deferredPrompt = e; btnInstall.hidden = false;
+  });
+  btnInstall.addEventListener("click", function () {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.finally(function () { deferredPrompt = null; btnInstall.hidden = true; });
+  });
+  window.addEventListener("appinstalled", function () { btnInstall.hidden = true; });
 
   fillInputs();
   renderChips();
