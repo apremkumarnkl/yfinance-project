@@ -132,8 +132,116 @@ def fundamentals(symbol):
         "income": statement(inc, INCOME, fin_cur),
         "balance": statement(bal, BALANCE, fin_cur),
         "cashflow": statement(cf, CASHFLOW, fin_cur),
+        "screener": safe("screener.in", lambda: screener(symbol)) or {},
         "errors": errors,
     }
+
+
+# ---------- Screener.in (Indian stocks): 5Y growth + promoter holding ----------
+import re
+import urllib.request
+from html.parser import HTMLParser
+
+
+class _Tables(HTMLParser):
+    """Collects every <table> as rows of cell text, tagged with its <section id>."""
+
+    def __init__(self):
+        super().__init__()
+        self.section, self.tables = None, []
+        self._t = self._r = self._c = None
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == "section" and a.get("id"):
+            self.section = a["id"]
+        elif tag == "table":
+            self._t = {"section": self.section, "rows": []}
+        elif tag == "tr" and self._t is not None:
+            self._r = []
+        elif tag in ("td", "th") and self._r is not None:
+            self._c = []
+
+    def handle_endtag(self, tag):
+        if tag in ("td", "th") and self._c is not None:
+            self._r.append(re.sub(r"\s+", " ", "".join(self._c)).strip())
+            self._c = None
+        elif tag == "tr" and self._r is not None:
+            if self._r:
+                self._t["rows"].append(self._r)
+            self._r = None
+        elif tag == "table" and self._t is not None:
+            self.tables.append(self._t)
+            self._t = None
+
+    def handle_data(self, data):
+        if self._c is not None:
+            self._c.append(data)
+
+
+def _num(s):
+    s = (s or "").replace(",", "").replace("%", "").strip()
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def _find(tables, section, label):
+    """(header_row, data_row) for the first row whose label starts with `label`."""
+    for t in tables:
+        if t["section"] != section or not t["rows"]:
+            continue
+        for r in t["rows"][1:]:
+            if r and r[0].lower().startswith(label.lower()):
+                return t["rows"][0], r
+    return None, None
+
+
+def _cagr5(header, row):
+    """5-year CAGR from the last full fiscal-year column (TTM excluded)."""
+    cols = [(h, _num(v)) for h, v in zip(header[1:], row[1:]) if h and h.upper() != "TTM"]
+    cols = [c for c in cols if c[1] is not None]
+    if len(cols) < 6:
+        return None
+    (end_lbl, end), (start_lbl, start) = cols[-1], cols[-6]
+    if end <= 0 or start <= 0:
+        return {"v": None, "why": f"Loss or zero in {start_lbl}/{end_lbl}: CAGR not meaningful"}
+    return {"v": ((end / start) ** 0.2 - 1) * 100, "period": f"{start_lbl} → {end_lbl}"}
+
+
+def screener(symbol):
+    if not symbol.upper().endswith((".NS", ".BO")):
+        return {}
+    code = symbol.rsplit(".", 1)[0].upper()
+    for view in ("consolidated/", ""):
+        url = f"https://www.screener.in/company/{code}/{view}"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (checklist helper)"})
+        try:
+            with urllib.request.urlopen(req, timeout=20) as r:
+                html = r.read().decode("utf-8", "replace")
+        except Exception:  # noqa: BLE001
+            continue
+        p = _Tables()
+        p.feed(html)
+        hdr, sales = _find(p.tables, "profit-loss", "Sales")
+        if not sales:
+            hdr, sales = _find(p.tables, "profit-loss", "Revenue")  # banks
+        _, profit = _find(p.tables, "profit-loss", "Net Profit")
+        if not sales and not profit:
+            continue  # e.g. consolidated view empty -> try standalone
+        out = {"url": url, "view": "consolidated" if view else "standalone"}
+        if sales:
+            out["revenueCagr5"] = _cagr5(hdr, sales)
+        if profit:
+            out["profitCagr5"] = _cagr5(hdr, profit)
+        sh_hdr, prom = _find(p.tables, "shareholding", "Promoters")
+        if prom:
+            vals = [(h, _num(v)) for h, v in zip(sh_hdr[1:], prom[1:]) if _num(v) is not None]
+            if vals:
+                out["promoterHolding"] = {"v": vals[-1][1], "period": vals[-1][0]}
+        return out
+    return {"error": f"Screener.in page not found for {code}"}
 
 
 def search(q):
