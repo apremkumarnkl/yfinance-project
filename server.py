@@ -132,6 +132,11 @@ def fundamentals(symbol):
         "income": statement(inc, INCOME, fin_cur),
         "balance": statement(bal, BALANCE, fin_cur),
         "cashflow": statement(cf, CASHFLOW, fin_cur),
+        "valuation": {k: clean(info.get(k)) for k in (
+            "trailingPE", "forwardPE", "priceToBook", "trailingPegRatio",
+            "enterpriseToEbitda", "priceToSalesTrailing12Months", "enterpriseValue",
+            "marketCap", "trailingEps", "forwardEps", "bookValue",
+            "fiftyTwoWeekLow", "fiftyTwoWeekHigh")},
         "screener": safe("screener.in", lambda: screener(symbol)) or {},
         "errors": errors,
     }
